@@ -3,6 +3,7 @@ package com.example.myapp.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -154,18 +155,38 @@ fun AddExpenseScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Отображение фото
+            // Отображение фото с кнопкой удаления
             if (photoUri != null) {
-                AsyncImage(
-                    model = photoUri,
-                    contentDescription = "Expense Photo",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { cameraLauncher.launch(tempUri) }, // По клику можно переснять
-                    contentScale = ContentScale.Crop
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    AsyncImage(
+                        model = photoUri,
+                        contentDescription = "Expense Photo",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { cameraLauncher.launch(tempUri) }, // По клику можно переснять
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    // Кнопка удаления фото
+                    IconButton(
+                        onClick = { photoUri = null },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), 
+                                shape = RoundedCornerShape(50)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete, 
+                            contentDescription = "Удалить фото",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
 
             Button(
