@@ -4,13 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.myapp.ui.AddExpenseScreen
+import com.example.myapp.ui.ExpenseViewModel
+import com.example.myapp.ui.ExpenseViewModelFactory
+import com.example.myapp.ui.HomeScreen
 import com.example.myapp.ui.theme.MyAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +20,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyAppTheme {
-                Scaffold( modifier = Modifier.fillMaxSize() ) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                val navController = rememberNavController()
+                val app = application as MyAppApplication
+                val viewModel: ExpenseViewModel = viewModel(
+                    factory = ExpenseViewModelFactory(app.repository)
+                )
+
+                NavHost(navController = navController, startDestination = "home") {
+                    composable("home") {
+                        HomeScreen(viewModel, navController)
+                    }
+                    composable("add_expense") {
+                        AddExpenseScreen(viewModel, navController)
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyAppTheme {
-        Greeting("Android")
     }
 }
