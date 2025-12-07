@@ -5,9 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.myapp.ui.AddExpenseScreen
 import com.example.myapp.ui.ExpenseViewModel
 import com.example.myapp.ui.ExpenseViewModelFactory
@@ -30,8 +32,12 @@ class MainActivity : ComponentActivity() {
                     composable("home") {
                         HomeScreen(viewModel, navController)
                     }
-                    composable("add_expense") {
-                        AddExpenseScreen(viewModel, navController)
+                    composable(
+                        "add_expense/{expenseId}",
+                        arguments = listOf(navArgument("expenseId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val expenseId = backStackEntry.arguments?.getInt("expenseId") ?: -1
+                        AddExpenseScreen(viewModel, navController, expenseId)
                     }
                 }
             }

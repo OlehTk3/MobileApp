@@ -25,6 +25,16 @@ class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() 
         }
     }
 
+    fun updateExpense(id: Int, title: String, amount: Double, photoUri: String? = null) {
+        viewModelScope.launch {
+            repository.updateExpense(Expense(id = id, title = title, amount = amount, photoUri = photoUri))
+        }
+    }
+
+    suspend fun getExpenseById(id: Int): Expense? {
+        return repository.getExpenseById(id)
+    }
+
     fun deleteExpense(expense: Expense) {
         viewModelScope.launch {
             repository.deleteExpense(expense)

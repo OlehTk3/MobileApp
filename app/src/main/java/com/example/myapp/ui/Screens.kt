@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -14,14 +15,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.myapp.data.Expense
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +38,7 @@ fun HomeScreen(
             TopAppBar(title = { Text("Трекер расходов") })
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate("add_expense") }) {
+            FloatingActionButton(onClick = { navController.navigate("add_expense/-1") }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Expense")
             }
         }
@@ -47,27 +49,31 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(expenses) { expense ->
-                ExpenseItem(expense = expense, onDelete = { viewModel.deleteExpense(expense) })
+                ExpenseItem(
+                    expense = expense,
+                    onClick = { navController.navigate("add_expense/${expense.id}") },
+                    onDelete = { viewModel.deleteExpense(expense) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun ExpenseItem(expense: Expense, onDelete: () -> Unit) {
+fun ExpenseItem(expense: Expense, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = expense.title, style = MaterialTheme.typography.titleMedium)
                 if (expense.photoUri != null) {
-                    Text(text = "📷 Фото прикреплено", style = MaterialTheme.typography.bodySmall)
+                    Text(text = "📷 Фото прикреплено", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -84,12 +90,25 @@ fun ExpenseItem(expense: Expense, onDelete: () -> Unit) {
 @Composable
 fun AddExpenseScreen(
     viewModel: ExpenseViewModel,
-    navController: NavController
+    navController: NavController,
+    expenseId: Int
 ) {
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     
+    // Загружаем данные если это редактирование
+    LaunchedEffect(expenseId) {
+        if (expenseId != -1) {
+            val expense = viewModel.getExpenseById(expenseId)
+            if (expense != null) {
+                title = expense.title
+                amount = expense.amount.toString()
+                photoUri = expense.photoUri?.let { Uri.parse(it) }
+            }
+        }
+    }
+
     val context = LocalContext.current
     
     // Camera logic
@@ -115,7 +134,7 @@ fun AddExpenseScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Новый расход") })
+            TopAppBar(title = { Text(if (expenseId == -1) "Новый расход" else "Редактирование") })
         }
     ) { padding ->
         Column(
@@ -135,11 +154,25 @@ fun AddExpenseScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // Отображение фото
+            if (photoUri != null) {
+                AsyncImage(
+                    model = photoUri,
+                    contentDescription = "Expense Photo",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { cameraLauncher.launch(tempUri) }, // По клику можно переснять
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Button(
                 onClick = { cameraLauncher.launch(tempUri) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = if (photoUri != null) "Фото сделано (Переснять)" else "Сделать фото чека")
+                Text(text = if (photoUri != null) "Переснять фото" else "Сделать фото чека")
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -147,7 +180,12 @@ fun AddExpenseScreen(
             Button(
                 onClick = {
                     if (title.isNotBlank() && amount.isNotBlank()) {
-                        viewModel.addExpense(title, amount.toDoubleOrNull() ?: 0.0, photoUri?.toString())
+                        val amountVal = amount.toDoubleOrNull() ?: 0.0
+                        if (expenseId == -1) {
+                            viewModel.addExpense(title, amountVal, photoUri?.toString())
+                        } else {
+                            viewModel.updateExpense(expenseId, title, amountVal, photoUri?.toString())
+                        }
                         navController.popBackStack()
                     }
                 },
